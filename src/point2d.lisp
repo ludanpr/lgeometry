@@ -23,13 +23,13 @@
   (:documentation "2D Polar point represented by the vector #(r theta), where
 r is radius and theta is the angle in the polar representation"))
 
-(defclass point-vector-2d ()
+(defclass point-2d-vector ()
   ((vector-2d :initarg :vector-2d
               :accessor vector-2d
               :type '(vector point-2d-cartesian)))
    (:documentation "Vector consisting of point-2d-cartesian"))
 
-;(deftype point-vector-2d () '(vector point-2d-cartesian)) 
+;(deftype point-2d-vector () '(vector point-2d-cartesian)) 
 
 (define-printer (point-2d-cartesian stream :type t :identity t)
   (format stream "~A" (cartesian-2d point-2d-cartesian)))
@@ -37,9 +37,9 @@ r is radius and theta is the angle in the polar representation"))
 (define-printer (point-2d-polar stream :type t :identity t)
   (format stream "~A" (polar-2d point-2d-polar)))
 
-(define-printer (point-vector-2d stream :type t :identity t)
-  (let* ((vec (vector-2d point-vector-2d))
-         (len (length (vector-2d point-vector-2d)))
+(define-printer (point-2d-vector stream :type t :identity t)
+  (let* ((vec (vector-2d point-2d-vector))
+         (len (length (vector-2d point-2d-vector)))
          (end len))
     (when (> end 5)
       (setf end 5))
@@ -101,7 +101,7 @@ r is radius and theta is the angle in the polar representation"))
 
 ;;; TODO Common Lisp condition system
 (defun make-point-2d-array (X Y)
-  "Returns a new class point-vector-2d that consists of an array of 2D cartesian points.
+  "Returns a new class point-2d-vector that consists of an array of 2D cartesian points.
 - X   a list of double-float values corresponding to the x coordinates of the points
 - Y   a list of double-float values corresponding to the y coordinates of the points
 X and Y can be two numbers too."
@@ -125,14 +125,16 @@ X and Y can be two numbers too."
              X Y)
        (error "[TYPE-ERROR]: 'X' and 'Y' must be lists of elements of type double-float"))
       (t
-       (make-instance 'point-vector-2d
+       (make-instance 'point-2d-vector
                       :vector-2d
                       (make-array lenx
                                   :element-type 'point-2d-cartesian
                                   :initial-contents cartesian-points))))))
 
 (defun %lexicographic-order (point1 point2)
-  (let ((len (length point1)))
+  (let* ((pt1 (cartesian-2d point1))
+         (pt2 (cartesian-2d point2))
+         (len (length pt1)))
     (labels ((lex-order (p1 p2 idx)
                (if (= idx len)
                    nil
@@ -144,9 +146,57 @@ X and Y can be two numbers too."
                           nil)
                          (t
                           (lex-order p1 p2 (+ idx 1)))))))
-      (lex-order point1 point2 0))))
+      (lex-order pt1 pt2 0))))
 
-"""(defmethod convex-hull ((points point-vector-2d))
-  (let ((ps (sort (copy-seq (vector-2d points) #'))))
-    (if bt:*supports-threads-p*)))
-"""
+(defun %hemisphere-hull (points len)
+  "Computes lower and upper hull as described in Andrew's algorithm for two-dimensional
+convex hull:
+A. M. Andrew, 'Another Efficient Algorithm for Convex Hulls in Two Dimensions', Info. Proc. Letters 9, 216-219 (1979)."
+    (let ((upper-hull (make-array 1 :adjustable t :fill-pointer 0))
+          (lower-hull (make-array 1 :adjustable t :fill-pointer 0))
+          (line-orientation (lambda (p1 p2 p3)
+                              (- (* (- (aref p2 0) (aref p1 0))
+                                    (- (aref p3 1) (aref p1 1)))
+                                 (* (- (aref p2 1) (aref p1 1))
+                                    (- (aref p3 0) (aref p1 0)))))))
+      (vector-push-extend (aref points 0) upper-hull)
+      (vector-push-extend (aref points 1) upper-hull)
+      (vector-push-extend (aref points (- len 1)) lower-hull)
+      (vector-push-extend (aref points (- len 2)) lower-hull)
+      (do ((i 2 (incf i))
+           (j (- len 3) (decf j)))
+          ((>= i len) (values upper-hull lower-hull))
+        (vector-push-extend (aref points i) upper-hull)
+        (vector-push-extend (aref points j) lower-hull)
+        ;; Upper-Hull loop
+        (loop :with top = (- (fill-pointer upper-hull) 1)
+              :while (and (> top 1)
+                          (>= (funcall line-orientation
+                                       (cartesian-2d (aref upper-hull (- top 2)))
+                                       (cartesian-2d (aref upper-hull (- top 1)))
+                                       (cartesian-2d (aref upper-hull top)))
+                              0.0d0))
+              :do (setf (aref upper-hull (- top 1))
+                        (vector-pop upper-hull))
+              :do (decf top))
+        ;; Lower-Hull loop
+        (loop :with top = (- (fill-pointer lower-hull) 1)
+              :while (and (> top 1)
+                          (>= (funcall line-orientation
+                                       (cartesian-2d (aref lower-hull (- top 2)))
+                                       (cartesian-2d (aref lower-hull (- top 1)))
+                                       (cartesian-2d (aref lower-hull top)))
+                              0.0d0))
+              :do (setf (aref lower-hull (- top 1))
+                        (vector-pop lower-hull))
+              :do (decf top)))))
+
+(defmethod convex-hull ((points point-2d-vector))
+  (let ((ps (sort (copy-seq (vector-2d points)) #'%lexicographic-order)))
+    (multiple-value-bind (upper-hull lower-hull)
+        (%hemisphere-hull ps (length ps))
+      (vector-pop upper-hull)
+      (vector-pop lower-hull)
+      (make-instance 'point-2d-vector
+                     :vector-2d (concatenate '(vector point-2d-cartesian)
+                                             upper-hull lower-hull)))))
