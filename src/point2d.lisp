@@ -196,11 +196,14 @@ A. M. Andrew, 'Another Efficient Algorithm for Convex Hulls in Two Dimensions', 
 be a representative of the class 'point-2d-vector.
 Returns a set of points - corresponding to the points that are in the convex hull of the
 original set - as a representative of the 'point-2d-vector class."
-  (let ((ps (sort (copy-seq (vector-2d points)) #'%lexicographic-order)))
-    (multiple-value-bind (upper-hull lower-hull)
-        (%hemisphere-hull ps (length ps))
-      (vector-pop upper-hull)
-      (vector-pop lower-hull)
-      (make-instance 'point-2d-vector
-                     :vector-2d (concatenate '(vector point-2d-cartesian)
-                                             upper-hull lower-hull)))))
+  (let* ((ps (sort (copy-seq (vector-2d points)) #'%lexicographic-order))
+         (len (length ps)))
+    (if (<= len 1)
+        points
+        (multiple-value-bind (upper-hull lower-hull)
+            (%hemisphere-hull ps (length ps))
+          (vector-pop upper-hull)
+          (vector-pop lower-hull)
+          (make-instance 'point-2d-vector
+                         :vector-2d (concatenate '(vector point-2d-cartesian)
+                                                 upper-hull lower-hull))))))
