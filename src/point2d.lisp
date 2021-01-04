@@ -148,7 +148,7 @@ X and Y can be two numbers too."
                           (lex-order p1 p2 (+ idx 1)))))))
       (lex-order pt1 pt2 0))))
 
-(defun %hemisphere-hull (points len)
+(defun %compute-hull (points len)
   "Computes lower and upper hull as described in Andrew's algorithm for two-dimensional
 convex hull:
 A. M. Andrew, 'Another Efficient Algorithm for Convex Hulls in Two Dimensions', Info. Proc. Letters 9, 216-219 (1979)."
@@ -201,7 +201,7 @@ original set - as a representative of the 'point-2d-vector class."
     (if (<= len 1)
         points
         (multiple-value-bind (upper-hull lower-hull)
-            (%hemisphere-hull ps (length ps))
+            (%compute-hull ps len)
           (vector-pop upper-hull)
           (vector-pop lower-hull)
           (make-instance 'point-2d-vector
