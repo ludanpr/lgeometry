@@ -6,7 +6,7 @@
 
 (in-package :L-geometry)
 
-;;; TODO maybe tune computations for precision
+;;; TODO deal with floating-point arithmetic errors
 
 (defparameter *metrics* (list #'euclidean-metric))
 
