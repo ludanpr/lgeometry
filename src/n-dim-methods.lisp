@@ -4,7 +4,7 @@
 ;;;; Implements auxiliary common methods that can be used in n-dimensional space
 ;;;;
 
-(in-package :L-geometry)
+(in-package :lgeometry)
 
 ;;;-----------------------------
 ;;; Generic functions
@@ -24,7 +24,10 @@ Computes euclidean distance by default."))
 ;;;-----------------------------
 
 (defun euclidean-metric (p1 p2)
-  "Compute Euclidean distance in R^n"
+  "Compute Euclidean distance in R^n
+NOTE: This is exported only for its function designator, it should not be
+called directly. Use lgeometry:distance-metric instead with this as the
+metric function argument."
   (sqrt (reduce #'+
                 (map 'list #'(lambda (x1 x2)
                                (expt (- x1 x2) 2))

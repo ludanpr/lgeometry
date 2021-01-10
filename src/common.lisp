@@ -4,7 +4,7 @@
 ;;;; Common utilities and macros used by the implementation
 ;;;;
 
-(in-package :L-geometry)
+(in-package :lgeometry)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (setf *read-default-float-format* 'double-float))

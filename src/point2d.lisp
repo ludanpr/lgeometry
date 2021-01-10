@@ -4,9 +4,9 @@
 ;;;; Methods and algorithms for points in R²
 ;;;;
 
-(in-package :L-geometry)
+(in-package :lgeometry)
 
-;;; TODO deal with floating-point arithmetic errors
+;;; TODO Use stable floating-point algorithms
 
 (defparameter *metrics* (list #'euclidean-metric))
 
@@ -28,8 +28,6 @@ r is radius and theta is the angle in the polar representation"))
               :accessor vector-2d
               :type '(vector point-2d-cartesian)))
    (:documentation "Vector consisting of point-2d-cartesian"))
-
-;(deftype point-2d-vector () '(vector point-2d-cartesian)) 
 
 (define-printer (point-2d-cartesian stream :type t :identity t)
   (format stream "~A" (cartesian-2d point-2d-cartesian)))
@@ -111,25 +109,17 @@ X and Y can be two numbers too."
         (setf Y (list (coerce Y 'double-float))))
       (if (not (and (listp X) (listp Y)))
           (error "[TYPE-ERROR]: 'X' and 'Y' must be lists")))
-  (let ((lenx (length X))
-        (cartesian-points nil))
-    (cond
-      ((/= lenx (length Y))
-       (error "[VALUE-ERROR]: 'X' and 'Y' must be of the same length"))
-      ((some #'(lambda (px py)
-                 (setf cartesian-points
-                       (nconc cartesian-points
-                              (list (make-point-2d-cartesian px py))))
-                 (or (not (typep px 'double-float))
-                     (not (typep py 'double-float))))
-             X Y)
-       (error "[TYPE-ERROR]: 'X' and 'Y' must be lists of elements of type double-float"))
-      (t
-       (make-instance 'point-2d-vector
-                      :vector-2d
-                      (make-array lenx
-                                  :element-type 'point-2d-cartesian
-                                  :initial-contents cartesian-points))))))
+  (let ((lenx (length X)))
+    (if (/= lenx (length Y))
+        (error "[VALUE-ERROR]: 'X' and 'Y' must be of the same length")
+        (make-instance
+         'point-2d-vector
+         :vector-2d (make-array
+                     lenx
+                     :element-type 'point-2d-cartesian
+                     :initial-contents (mapcar #'(lambda (px py)
+                                                   (make-point-2d-cartesian px py))
+                                               X Y))))))
 
 (defun %lexicographic-order (point1 point2)
   (let* ((pt1 (cartesian-2d point1))
