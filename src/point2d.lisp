@@ -11,23 +11,23 @@
 (defparameter *metrics* (list #'euclidean-metric))
 
 (defclass point-2d-cartesian ()
-  ((cartesian-2d :initarg :cartesian-2d
-                 :accessor cartesian-2d
-                 :type '(vector double-float)))
+  ((%cartesian-2d :initarg :cartesian-2d
+                  :accessor cartesian-2d
+                  :type '(vector double-float)))
   (:documentation "2D Cartesian point represented by the vector #(x y)"))
 
 (defclass point-2d-polar ()
-  ((polar-2d :initarg :polar-2d
-             :accessor polar-2d
-             :type '(vector double-float)))
+  ((%polar-2d :initarg :polar-2d
+              :accessor polar-2d
+              :type '(vector double-float)))
   (:documentation "2D Polar point represented by the vector #(r theta), where
 r is radius and theta is the angle in the polar representation"))
 
 (defclass point-2d-vector ()
-  ((vector-2d :initarg :vector-2d
-              :accessor vector-2d
-              :type '(vector point-2d-cartesian)))
-   (:documentation "Vector consisting of point-2d-cartesian"))
+  ((%vector-2d :initarg :vector-2d
+               :accessor vector-2d
+               :type '(vector point-2d-cartesian)))
+  (:documentation "Vector consisting of point-2d-cartesian"))
 
 (define-printer (point-2d-cartesian stream :type t :identity t)
   (format stream "~A" (cartesian-2d point-2d-cartesian)))
@@ -66,15 +66,20 @@ r is radius and theta is the angle in the polar representation"))
 (defmethod distance-metric ((p1 point-2d-cartesian)
                             (p2 point-2d-cartesian)
                             &optional (distance-fn #'euclidean-metric))
+  "Computes a distance metric in 2D plane.
+Parameters:
+   p1 and p2 must be instances of point-2d-cartesian class
+   distance-fn must be one of distance metric exported by lgeometry or one defined
+by lgeometry:define-metric"
   (if (member distance-fn *metrics*)
-      (let ((p1-coords (slot-value p1 'cartesian-2d))
-            (p2-coords (slot-value p2 'cartesian-2d)))
+      (let ((p1-coords (slot-value p1 '%cartesian-2d))
+            (p2-coords (slot-value p2 '%cartesian-2d)))
         (funcall distance-fn p1-coords p2-coords))
       (error "[VALUE-ERROR]: 'distance-fn' must be one of ~{~A~^, ~}" *metrics*))) ;; TODO change to use condition system
 
 (defmethod cartesian->polar ((cartesian point-2d-cartesian))
   (assert (typep cartesian 'point-2d-cartesian))
-  (let* ((v (slot-value cartesian 'cartesian-2d))
+  (let* ((v (slot-value cartesian '%cartesian-2d))
          (x (aref v 0))
          (y (aref v 1))
          (phi 0.0d0))
@@ -91,7 +96,7 @@ r is radius and theta is the angle in the polar representation"))
 
 (defmethod polar->cartesian ((polar point-2d-polar))
   (assert (typep polar 'point-2d-polar))
-  (let* ((v (slot-value polar 'polar-2d))
+  (let* ((v (slot-value polar '%polar-2d))
          (r (aref v 0))
          (theta (aref v 1)))
     (make-point-2d-cartesian (* r (cos theta))

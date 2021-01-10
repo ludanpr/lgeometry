@@ -32,3 +32,13 @@ metric function argument."
                 (map 'list #'(lambda (x1 x2)
                                (expt (- x1 x2) 2))
                      p1 p2))))
+
+(defmacro define-metric (name (&rest params) &body body)
+  "Define a new distance metric.
+Use this macro to define a custom distance metric with the form:
+   (define-metric metric-name (p1 p2) ...)
+Use it as the distance-fn argument to lgeometry:distance-metric"
+  `(progn
+     (defun ,name (,@params)
+       ,@body)
+     (setf *metrics* (append (list #',name) *metrics*))))

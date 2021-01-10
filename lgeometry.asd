@@ -4,12 +4,12 @@
 
 (asdf:defsystem #:lgeometry
   :description "Implementations of computational geometry algorithms."
-  :author ("Luan")
-  :maintainer ("Luan")
+  :author ("lycankrammer")
+  :maintainer ("lycankrammer")
   :license "MIT"
   :homepage ""
-  :source-control (:git "https://github.com/luandelpreto/lgeometry.git")
-  :bug-tracker "https://github.com/luandelpreto/lgeometry/issues"
+  :source-control (:git "https://github.com/lycankrammer/lgeometry.git")
+  :bug-tracker "https://github.com/lycankrammer/lgeometry/issues"
   :version "0.0.1"
   :encoding :utf-8
   :long-description #.(uiop:read-file-string (uiop/pathname:subpathname *load-pathname* "README.md"))

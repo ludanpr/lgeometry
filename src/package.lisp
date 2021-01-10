@@ -16,6 +16,7 @@
            #:euclidean-metric
            ;;----------------------------------------------------------------
            #:distance-metric
+           #:define-metric
            #:cartesian->polar
            #:polar->cartesian
            #:make-point-2d-array
