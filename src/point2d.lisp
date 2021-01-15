@@ -75,7 +75,8 @@ by lgeometry:define-metric"
       (let ((p1-coords (slot-value p1 '%cartesian-2d))
             (p2-coords (slot-value p2 '%cartesian-2d)))
         (funcall distance-fn p1-coords p2-coords))
-      (error "[VALUE-ERROR]: 'distance-fn' must be one of ~{~A~^, ~}" *metrics*))) ;; TODO change to use condition system
+      (error 'undefined-metric
+             :reason (format nil "'distance-fn' must be one of ~{~A~^, ~}" *metrics*))))
 
 (defmethod cartesian->polar ((cartesian point-2d-cartesian))
   (assert (typep cartesian 'point-2d-cartesian))
@@ -102,7 +103,6 @@ by lgeometry:define-metric"
     (make-point-2d-cartesian (* r (cos theta))
                              (* r (sin theta)))))
 
-;;; TODO Common Lisp condition system
 (defun make-point-2d-array (X Y)
   "Returns a new class point-2d-vector that consists of an array of 2D cartesian points.
 - X   a list of double-float values corresponding to the x coordinates of the points
@@ -112,11 +112,13 @@ X and Y can be two numbers too."
       (progn
         (setf X (list (coerce X 'double-float)))
         (setf Y (list (coerce Y 'double-float))))
-      (if (not (and (listp X) (listp Y)))
-          (error "[TYPE-ERROR]: 'X' and 'Y' must be lists")))
+      (cond ((and (not (numberp X)) (not (listp X)))
+             (error 'not-a-list :datum (type-of X) :expected-type 'list))
+            ((not (listp Y))
+             (error 'not-a-list :datum (type-of Y) :expected-type 'list))))
   (let ((lenx (length X)))
     (if (/= lenx (length Y))
-        (error "[VALUE-ERROR]: 'X' and 'Y' must be of the same length")
+        (error 'not-same-length :reason "'X' and 'Y' must be of the same length")
         (make-instance
          'point-2d-vector
          :vector-2d (make-array

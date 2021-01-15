@@ -18,5 +18,6 @@
   :serial t
   :components ((:file "package")
                (:file "common")
+               (:file "conditions")
                (:file "n-dim-methods")
                (:file "point2d")))

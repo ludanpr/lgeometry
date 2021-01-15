@@ -20,4 +20,15 @@
            #:cartesian->polar
            #:polar->cartesian
            #:make-point-2d-array
-           #:convex-hull))
+           #:convex-hull
+           ;;----------------------------------
+           ;; Exported Conditions
+           ;;----------------------------------
+           #:value-error
+           #:undefined-metric
+           #:not-same-length
+           #:not-a-list
+           ;;----------------------------------
+           ;; Condition readers
+           ;;----------------------------------
+           #:reason))
