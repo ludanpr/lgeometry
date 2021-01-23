@@ -128,6 +128,8 @@ X and Y can be two numbers too."
                                                    (make-point-2d-cartesian px py))
                                                X Y))))))
 
+(declaim (inline %line-orientation %lexicographic-order))
+
 (defun %lexicographic-order (point1 point2)
   (let* ((pt1 (cartesian-2d point1))
          (pt2 (cartesian-2d point2))
@@ -145,55 +147,58 @@ X and Y can be two numbers too."
                           (lex-order p1 p2 (+ idx 1)))))))
       (lex-order pt1 pt2 0))))
 
+(defun %line-orientation (p1 p2 p3)
+  (declare (type (simple-array double-float (2)) p1 p2 p3))
+  (- (* (- (aref p2 0) (aref p1 0))
+        (- (aref p3 1) (aref p1 1)))
+     (* (- (aref p2 1) (aref p1 1))
+        (- (aref p3 0) (aref p1 0)))))
+
 (defun %compute-hull (points len)
   "Computes lower and upper hull as described in Andrew's algorithm for two-dimensional
 convex hull:
 A. M. Andrew, 'Another Efficient Algorithm for Convex Hulls in Two Dimensions', Info. Proc. Letters 9, 216-219 (1979)."
-    (let ((upper-hull (make-array 1 :adjustable t :fill-pointer 0))
-          (lower-hull (make-array 1 :adjustable t :fill-pointer 0))
-          (line-orientation (lambda (p1 p2 p3)
-                              (- (* (- (aref p2 0) (aref p1 0))
-                                    (- (aref p3 1) (aref p1 1)))
-                                 (* (- (aref p2 1) (aref p1 1))
-                                    (- (aref p3 0) (aref p1 0)))))))
-      (vector-push-extend (aref points 0) upper-hull)
-      (vector-push-extend (aref points 1) upper-hull)
-      (vector-push-extend (aref points (- len 1)) lower-hull)
-      (vector-push-extend (aref points (- len 2)) lower-hull)
-      (do ((i 2 (incf i))
-           (j (- len 3) (decf j)))
-          ((>= i len) (values upper-hull lower-hull))
-        (vector-push-extend (aref points i) upper-hull)
-        (vector-push-extend (aref points j) lower-hull)
-        ;; Upper-Hull loop
-        (loop :with top = (- (fill-pointer upper-hull) 1)
-              :while (and (> top 1)
-                          (>= (funcall line-orientation
-                                       (cartesian-2d (aref upper-hull (- top 2)))
-                                       (cartesian-2d (aref upper-hull (- top 1)))
-                                       (cartesian-2d (aref upper-hull top)))
-                              0.0d0))
-              :do (setf (aref upper-hull (- top 1))
-                        (vector-pop upper-hull))
-              :do (decf top))
-        ;; Lower-Hull loop
-        (loop :with top = (- (fill-pointer lower-hull) 1)
-              :while (and (> top 1)
-                          (>= (funcall line-orientation
-                                       (cartesian-2d (aref lower-hull (- top 2)))
-                                       (cartesian-2d (aref lower-hull (- top 1)))
-                                       (cartesian-2d (aref lower-hull top)))
-                              0.0d0))
-              :do (setf (aref lower-hull (- top 1))
-                        (vector-pop lower-hull))
-              :do (decf top)))))
+  (declare (optimize (speed 3) (safety 0)))
+  (let ((upper-hull (make-array 1 :adjustable t :fill-pointer 0))
+        (lower-hull (make-array 1 :adjustable t :fill-pointer 0)))
+    (vector-push-extend (aref points 0) upper-hull)
+    (vector-push-extend (aref points 1) upper-hull)
+    (vector-push-extend (aref points (- len 1)) lower-hull)
+    (vector-push-extend (aref points (- len 2)) lower-hull)
+    (do ((i 2 (incf i))
+         (j (- len 3)(decf j)))
+        ((>= i len) (values upper-hull lower-hull))
+      (vector-push-extend (aref points i) upper-hull)
+      (vector-push-extend (aref points j) lower-hull)
+      ;; Upper-Hull loop
+      (loop :with top = (- (fill-pointer upper-hull) 1)
+            :while (and (> top 1)
+                        (>= (%line-orientation
+                             (cartesian-2d (aref upper-hull (- top 2)))
+                             (cartesian-2d (aref upper-hull (- top 1)))
+                             (cartesian-2d (aref upper-hull top)))
+                            0.0d0))
+            :do (setf (aref upper-hull (- top 1))
+                      (vector-pop upper-hull))
+            :do (decf top))
+      ;; Lower-Hull loop
+      (loop :with top = (- (fill-pointer lower-hull) 1)
+            :while (and (> top 1)
+                        (>= (%line-orientation
+                             (cartesian-2d (aref lower-hull (- top 2)))
+                             (cartesian-2d (aref lower-hull (- top 1)))
+                             (cartesian-2d (aref lower-hull top)))
+                            0.0d0))
+            :do (setf (aref lower-hull (- top 1))
+                      (vector-pop lower-hull))
+            :do (decf top)))))
 
 (defmethod convex-hull ((points point-2d-vector))
   "Computes two-dimensional convex hull of a set of points. The 'points' argument must
 be a representative of the class 'point-2d-vector.
 Returns a set of points - corresponding to the points that are in the convex hull of the
 original set - as a representative of the 'point-2d-vector class."
-  (let* ((ps (sort (copy-seq (vector-2d points)) #'%lexicographic-order))
+  (let* ((ps (sort (copy-seq (vector-2d points)) #'%lexicographic-order)) ; SORT is a bottleneck here
          (len (length ps)))
     (if (<= len 1)
         points
