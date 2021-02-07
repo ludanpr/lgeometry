@@ -75,8 +75,7 @@ by lgeometry:define-metric"
       (let ((p1-coords (slot-value p1 '%cartesian-2d))
             (p2-coords (slot-value p2 '%cartesian-2d)))
         (funcall distance-fn p1-coords p2-coords))
-      (error 'undefined-metric
-             :reason (format nil "'distance-fn' must be one of ~{~A~^, ~}" *metrics*))))
+      (error 'undefined-metric :name distance-fn :available-metrics *metrics*)))
 
 (defmethod cartesian->polar ((cartesian point-2d-cartesian))
   (assert (typep cartesian 'point-2d-cartesian))
@@ -116,9 +115,10 @@ X and Y can be two numbers too."
              (error 'not-a-list :datum (type-of X) :expected-type 'list))
             ((not (listp Y))
              (error 'not-a-list :datum (type-of Y) :expected-type 'list))))
-  (let ((lenx (length X)))
-    (if (/= lenx (length Y))
-        (error 'not-same-length :reason "'X' and 'Y' must be of the same length")
+  (let ((lenx (length X))
+        (leny (length Y)))
+    (if (/= lenx leny)
+        (error 'not-same-length :received X :listlen lenx :othervalue Y :otherlen leny)
         (make-instance
          'point-2d-vector
          :vector-2d (make-array
